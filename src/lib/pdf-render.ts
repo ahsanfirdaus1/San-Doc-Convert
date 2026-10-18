@@ -16,6 +16,7 @@ export async function openPdf(bytes: Uint8Array) {
   return pdfjs.getDocument({
     data: new Uint8Array(bytes),
     useWasm: false,
+    wasmUrl: `${base}/decoders/`,
     enableXfa: false,
     cMapUrl: `${base}/cmaps/`,
     cMapPacked: true,

@@ -6,6 +6,11 @@ import {
   PDFHexString,
   StandardFonts,
   rgb,
+  pushGraphicsState,
+  popGraphicsState,
+  scale,
+  translate,
+  drawObject,
 } from "pdf-lib";
 import { unzipSync } from "fflate";
 import { readFile } from "node:fs/promises";
@@ -89,6 +94,64 @@ async function download(page: Page) {
 }
 test.beforeEach(async ({ page }) => {
   await page.goto("./");
+});
+
+test("scanned PDF image decoders load locally under CSP", async ({ page }) => {
+  const pdf = await PDFDocument.create();
+  const sheet = pdf.addPage([210, 300]);
+  // CCITT row of eight black pixels: white run 0 followed by black run 8.
+  const stream = pdf.context.stream(Uint8Array.of(0x35, 0x14), {
+    Type: "XObject",
+    Subtype: "Image",
+    Width: 8,
+    Height: 1,
+    BitsPerComponent: 1,
+    ColorSpace: "DeviceGray",
+    Filter: "CCITTFaxDecode",
+    DecodeParms: {
+      K: 0,
+      Columns: 8,
+      Rows: 1,
+      EndOfBlock: false,
+      EndOfLine: false,
+      BlackIs1: false,
+    },
+  });
+  const name = sheet.node.newXObject("Scan", pdf.context.register(stream));
+  sheet.pushOperators(
+    pushGraphicsState(),
+    translate(24, 180),
+    scale(160, 80),
+    drawObject(name),
+    popGraphicsState(),
+  );
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (/failed|error|violat|refused/i.test(message.text()))
+      errors.push(message.text());
+  });
+  await page
+    .getByLabel("Choose files", { exact: true })
+    .setInputFiles({
+      name: "scan.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(await pdf.save()),
+    });
+  await run(page, "Convert to images");
+  const pixel = await page
+    .locator(".result-preview img")
+    .evaluate(async (element) => {
+      const image = element as HTMLImageElement;
+      await image.decode();
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(image, 0, 0);
+      return [...ctx.getImageData(100, 100, 1, 1).data];
+    });
+  expect(pixel.slice(0, 3)).toEqual([0, 0, 0]);
+  expect(errors).toEqual([]);
 });
 
 test("responsive layout, keyboard navigation, reduced motion, and privacy dialog", async ({
@@ -225,13 +288,11 @@ test("all image conversion directions, transparency, and Images to PDF", async (
   expect(firstPixel[0]).toBeGreaterThan(240);
   expect(firstPixel[3]).toBe(255);
   await page.getByRole("button", { name: "Clear all", exact: true }).click();
-  await page
-    .getByLabel("Choose files", { exact: true })
-    .setInputFiles({
-      name: "photo.jpg",
-      mimeType: "image/jpeg",
-      buffer: jpg.bytes,
-    });
+  await page.getByLabel("Choose files", { exact: true }).setInputFiles({
+    name: "photo.jpg",
+    mimeType: "image/jpeg",
+    buffer: jpg.bytes,
+  });
   await page.getByLabel("Output format").selectOption("webp");
   let webp = {
     bytes: Buffer.from(
@@ -256,13 +317,11 @@ test("all image conversion directions, transparency, and Images to PDF", async (
   }
   expect(webp.bytes.subarray(8, 12).toString()).toBe("WEBP");
   await page.getByRole("button", { name: "Clear all", exact: true }).click();
-  await page
-    .getByLabel("Choose files", { exact: true })
-    .setInputFiles({
-      name: "photo.webp",
-      mimeType: "image/webp",
-      buffer: webp.bytes,
-    });
+  await page.getByLabel("Choose files", { exact: true }).setInputFiles({
+    name: "photo.webp",
+    mimeType: "image/webp",
+    buffer: webp.bytes,
+  });
   await page.getByLabel("Output format").selectOption("png");
   await run(page, "Convert images");
   const png = await download(page);
@@ -411,13 +470,11 @@ test("invalid files and invalid page selections are actionable; cancel is interr
   await expect(page.locator(".error-message")).toContainText(
     "Choose PDF files",
   );
-  await page
-    .getByLabel("Choose files", { exact: true })
-    .setInputFiles({
-      name: "broken.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.7\nbroken"),
-    });
+  await page.getByLabel("Choose files", { exact: true }).setInputFiles({
+    name: "broken.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.7\nbroken"),
+  });
   await page
     .getByRole("button", { name: "Convert to images", exact: true })
     .click();
