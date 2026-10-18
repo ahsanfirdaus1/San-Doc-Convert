@@ -25,7 +25,7 @@ export interface OutputFile {
   detail: string;
 }
 export interface Job {
-  tool: ToolId | "zip" | "prepared-images-pdf";
+  tool: ToolId | "zip" | "prepared-images-pdf" | "inspect-pdf";
   files: InputFile[];
   options: Options;
 }

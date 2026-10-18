@@ -1,4 +1,10 @@
-import { checkPixels, checkOutput, pageIndexes, safeStem } from "./validation";
+import {
+  checkPixels,
+  checkOutput,
+  pageIndexes,
+  safeStem,
+  LIMITS,
+} from "./validation";
 import type { InputFile, Options, OutputFile, Progress } from "./types";
 
 let library: Promise<typeof import("pdfjs-dist")> | undefined;
@@ -18,6 +24,9 @@ export async function openPdf(bytes: Uint8Array) {
     useWasm: false,
     wasmUrl: `${base}/decoders/`,
     enableXfa: false,
+    stopAtErrors: true,
+    maxImageSize: LIMITS.pixels,
+    canvasMaxAreaInBytes: LIMITS.pixels * 4,
     cMapUrl: `${base}/cmaps/`,
     cMapPacked: true,
     standardFontDataUrl: `${base}/standard_fonts/`,

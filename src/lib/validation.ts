@@ -100,6 +100,8 @@ export function readableError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (/encrypt|password/i.test(message))
     return "Password-protected PDFs are not supported. Choose an unencrypted copy.";
+  if (/Image exceeded maximum allowed size/i.test(message))
+    return "This PDF contains an image above the 16 megapixel limit. Choose a smaller document.";
   if (/invalid pdf|parse|pdf header|xref|unexpected eof/i.test(message))
     return "This PDF could not be read. It may be damaged or incomplete.";
   return message || "The file could not be processed. Try another file.";

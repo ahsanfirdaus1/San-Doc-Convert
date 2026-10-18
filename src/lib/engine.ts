@@ -77,6 +77,12 @@ export async function convert(
   try {
     let outputs: OutputFile[];
     try {
+      if (tool === "pdf-images")
+        await runWorker(
+          { tool: "inspect-pdf", files: inputs, options },
+          progress,
+          signal,
+        );
       outputs =
         tool === "pdf-images"
           ? await (

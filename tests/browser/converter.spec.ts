@@ -130,13 +130,11 @@ test("scanned PDF image decoders load locally under CSP", async ({ page }) => {
     if (/failed|error|violat|refused/i.test(message.text()))
       errors.push(message.text());
   });
-  await page
-    .getByLabel("Choose files", { exact: true })
-    .setInputFiles({
-      name: "scan.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from(await pdf.save()),
-    });
+  await page.getByLabel("Choose files", { exact: true }).setInputFiles({
+    name: "scan.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(await pdf.save()),
+  });
   await run(page, "Convert to images");
   const pixel = await page
     .locator(".result-preview img")
@@ -152,6 +150,40 @@ test("scanned PDF image decoders load locally under CSP", async ({ page }) => {
     });
   expect(pixel.slice(0, 3)).toEqual([0, 0, 0]);
   expect(errors).toEqual([]);
+});
+
+test("oversized images embedded in PDFs are rejected rather than silently omitted", async ({
+  page,
+}) => {
+  const pdf = await PDFDocument.create();
+  const sheet = pdf.addPage([210, 300]);
+  const stream = pdf.context.stream(Uint8Array.of(0), {
+    Type: "XObject",
+    Subtype: "Image",
+    Width: 9000,
+    Height: 9000,
+    BitsPerComponent: 8,
+    ColorSpace: "DeviceGray",
+  });
+  const name = sheet.node.newXObject("LargeScan", pdf.context.register(stream));
+  sheet.pushOperators(
+    pushGraphicsState(),
+    scale(200, 200),
+    drawObject(name),
+    popGraphicsState(),
+  );
+  await page.getByLabel("Choose files", { exact: true }).setInputFiles({
+    name: "large-scan.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(await pdf.save()),
+  });
+  await page
+    .getByRole("button", { name: "Convert to images", exact: true })
+    .click();
+  await expect(page.locator(".error-message")).toContainText("16 megapixel");
+  await expect(
+    page.getByRole("link", { name: "Download file", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("responsive layout, keyboard navigation, reduced motion, and privacy dialog", async ({

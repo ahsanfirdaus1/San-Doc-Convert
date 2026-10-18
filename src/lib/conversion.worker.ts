@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFRawStream, PDFName, PDFNumber } from "pdf-lib";
 import { zipSync } from "fflate";
-import { transformPdf } from "./pdf-operations";
+import { transformPdf, readPdf } from "./pdf-operations";
 import {
   signature,
   validateKind,
@@ -52,6 +52,30 @@ function canvasFor(image: ImageBitmap, white: boolean) {
   return canvas;
 }
 async function convert(job: Job): Promise<OutputFile[]> {
+  if (job.tool === "inspect-pdf") {
+    validateSelection(
+      job.files.map((file) => ({ size: file.bytes.length })),
+      "pdf-images",
+    );
+    const pdf = await readPdf(job.files[0].bytes);
+    if (!pdf.getPageCount() || pdf.getPageCount() > 100)
+      throw new Error("PDFs must contain between 1 and 100 pages per job.");
+    for (const [, object] of pdf.context.enumerateIndirectObjects()) {
+      if (
+        !(object instanceof PDFRawStream) ||
+        object.dict.get(PDFName.of("Subtype")) !== PDFName.of("Image")
+      )
+        continue;
+      const width = object.dict
+        .lookup(PDFName.of("Width"), PDFNumber)
+        .asNumber();
+      const height = object.dict
+        .lookup(PDFName.of("Height"), PDFNumber)
+        .asNumber();
+      checkPixels(width, height);
+    }
+    return [];
+  }
   if (job.tool === "zip") {
     checkOutput(job.files.reduce((n, f) => n + f.bytes.byteLength, 0));
     const entries = Object.fromEntries(job.files.map((f) => [f.name, f.bytes]));
@@ -89,14 +113,12 @@ async function convert(job: Job): Promise<OutputFile[]> {
         (width - margin * 2) / imageWidth,
         (height - margin * 2) / imageHeight,
       );
-      pdf
-        .addPage([width, height])
-        .drawImage(embedded, {
-          x: (width - imageWidth * scale) / 2,
-          y: (height - imageHeight * scale) / 2,
-          width: imageWidth * scale,
-          height: imageHeight * scale,
-        });
+      pdf.addPage([width, height]).drawImage(embedded, {
+        x: (width - imageWidth * scale) / 2,
+        y: (height - imageHeight * scale) / 2,
+        width: imageWidth * scale,
+        height: imageHeight * scale,
+      });
       progress(
         `Preparing page ${i + 1} of ${job.files.length}`,
         40 + Math.round(((i + 1) / job.files.length) * 50),

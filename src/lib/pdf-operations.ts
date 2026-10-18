@@ -2,6 +2,23 @@ import { PDFDocument, degrees } from "pdf-lib";
 import { LIMITS, pageIndexes, checkOutput, safeStem } from "./validation";
 import type { InputFile, Options, OutputFile, Progress, ToolId } from "./types";
 
+export async function readPdf(bytes: Uint8Array): Promise<PDFDocument> {
+  try {
+    const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
+    pdf.getPageCount();
+    return pdf;
+  } catch (cause) {
+    const protectedFile =
+      cause instanceof Error && /encrypt|password/i.test(cause.message);
+    throw new Error(
+      protectedFile
+        ? "Password-protected PDFs are not supported. Choose an unencrypted copy."
+        : "This PDF could not be read. It may be damaged or incomplete.",
+      { cause },
+    );
+  }
+}
+
 export async function transformPdf(
   tool: ToolId,
   files: InputFile[],
@@ -17,9 +34,7 @@ export async function transformPdf(
       `Reading PDF ${i + 1} of ${files.length}`,
       Math.round((i / files.length) * 35),
     );
-    const pdf = await PDFDocument.load(files[i].bytes, {
-      updateMetadata: false,
-    });
+    const pdf = await readPdf(files[i].bytes);
     total += pdf.getPageCount();
     if (!pdf.getPageCount() || total > LIMITS.pages)
       throw new Error("Choose PDFs with a combined total of 1 to 100 pages.");

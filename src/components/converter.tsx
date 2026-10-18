@@ -34,7 +34,7 @@ const TOOLS: {
   {
     id: "images-pdf",
     title: "Images to PDF",
-    description: "Give your images a new home.",
+    description: "Combine JPG and PNG into a PDF.",
     color: "blue",
     action: "Create PDF",
   },
@@ -331,9 +331,8 @@ export default function Converter() {
             <span>on your device.</span>
           </h1>
           <p>
-            A new format. The pages you need. Everything happens
-            <br className="desktop-break" /> right in your browser, with your
-            files staying with you.
+            Convert images or adjust PDF pages right in your browser.
+            <br className="desktop-break" /> Your files stay on your device.
           </p>
           <div className="hero-notes">
             <span>
@@ -399,8 +398,8 @@ export default function Converter() {
                 <h2 id="workspace-title">{current.title}</h2>
                 <p>
                   {results.length
-                    ? "A fresh format, ready to go."
-                    : "A few clicks from a fresh format."}
+                    ? "Your result is ready to download."
+                    : "Choose files and adjust your settings."}
                 </p>
               </div>
             </div>
@@ -460,7 +459,7 @@ export default function Converter() {
                           <Icon name="upload" size={15} />
                         </span>
                       </div>
-                      <h4>A little change starts here.</h4>
+                      <h4>Choose a file to begin.</h4>
                       <p>
                         Drop your {isImageTool(tool) ? "images" : "PDFs"} here,
                         or choose from your device.
@@ -883,7 +882,7 @@ export default function Converter() {
             <Icon name="shield" size={26} />
           </div>
           <div>
-            <h2>Your documents have a place. Your device.</h2>
+            <h2>File processing stays on your device.</h2>
             <p>
               File processing stays in your browser. Refresh the page and the
               workspace starts fresh.
