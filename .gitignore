@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+test-results/
+playwright-report/
+tests/fixtures/
+public/pdfjs/
+*.tsbuildinfo
+.env*
+!.env.example
+.playwright-cli/
+*.log

@@ -1,0 +1,36 @@
+{
+  "name": "san-doc-convert",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/copy-assets.mjs",
+    "dev": "next dev --webpack",
+    "build": "node scripts/copy-assets.mjs && next build --webpack && node scripts/secure-export.mjs",
+    "start": "node scripts/serve.mjs",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "tsx --test tests/core.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "next": "^16.4.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "6.4.299",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.71.2"
+  }
+}
